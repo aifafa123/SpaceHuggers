@@ -4,8 +4,34 @@
 <meta name="title" content="Space Huggers"></meta>
 <meta name="author" content="Frank Force"></meta>
 <meta name="description" content="A run and gun roguelike platformer with destructible environments"></meta>
-<meta name=viewport content='width=device-width,initial-scale=1,user-scalable=0'>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="screen-orientation" content="landscape">
+<meta name="orientation" content="landscape">
 <meta charset=utf-8>
+<style>
+    html, body {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
+    }
+    @media screen and (orientation:portrait) {
+    body::before {
+        content: "请旋转手机到横屏模式";
+        position: fixed;
+        left: 0; top: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,.9);
+        color: #fff;
+        font-size: 2em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+}
+</style>
 </head>
 <body>
 <script src=engine/engineUtil.js></script>
