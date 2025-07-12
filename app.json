@@ -1,0 +1,18 @@
+{
+  "pages": ["pages/index/index"],
+  "subpackages": [
+    {
+      "root": "packages",
+      "pages": ["logs/logs"]
+    }
+  ],
+  "usingComponents": {
+  },
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "Weapp-starter",
+    "navigationBarTextStyle": "black"
+  },
+  "sitemapLocation": "sitemap.json"
+}

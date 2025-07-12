@@ -18,22 +18,76 @@
     background: #000;
     }
     @media screen and (orientation:portrait) {
-    body::before {
-        content: "请旋转手机到横屏模式";
-        position: fixed;
-        left: 0; top: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,.9);
-        color: #fff;
-        font-size: 2em;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
+        body::before {
+            content: "请旋转手机到横屏模式";
+            position: fixed;
+            left: 0; top: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,.9);
+            color: #fff;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
     }
+    #game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+}
+
+/* 摇杆区域 */
+#joystick-zone {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 150px;
+  height: 150px;
+  background-color: rgba(255,255,255,0.05);
+  border-radius: 50%;
+}
+
+/* 技能按钮容器 */
+#buttons-container {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 15px;
+}
+
+/* 技能按钮样式 */
+.skill-button {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(0, 200, 255, 0.8);
+  color: white;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+  /* transition: transform 0.01; */
+  user-select: none;
+}
+
+.skill-button:active {
+  transform: scale(0.9);
+  background-color: rgba(0, 150, 255, 1);
 }
 </style>
 </head>
 <body>
+    <div id="game-container">
+    <div id="joystick-zone"></div>
+
+    <div id="buttons-container">
+      <button class="skill-button" id="skill1">技能1</button>
+      <button class="skill-button" id="skill2">技能2</button>
+      <button class="skill-button" id="skill3">技能3</button>
+    </div>
+  </div>
 <script src=engine/engineUtil.js></script>
 <script src=engine/engineDebug.js></script>
 <script src=engine/engine.js></script>
@@ -49,3 +103,62 @@
 <script src=appEffects.js></script>
 <script src=appLevel.js></script>
 <script src=app.js></script>
+<script src="https://unpkg.com/nipplejs@0.10.2/dist/nipplejs.js"></script>
+<script>
+    // 初始化 nipplejs
+const joystick = nipplejs.create({
+  zone: document.getElementById('joystick-zone'),
+  mode: 'static',
+  position: { left: '75px', bottom: '75px' }, // 中心点
+  color: 'cyan',
+  size: 100
+});
+
+joystick.on('move', (evt, data) => {
+  if (data.direction) {
+    console.log(`Direction: ${data.direction.angle}`);
+    console.log(`Force: ${data.force}`);
+
+    inputData[0][38] = {d: 0, p: 0, r: 1}
+    inputData[0][37] = {d: 0, p: 0, r: 1}
+    inputData[0][39] = {d: 0, p: 0, r: 1}
+    inputData[0][40] = {d: 0, p: 0, r: 1}
+
+    if(data.direction.angle === 'up'){
+        inputData[0][38] = {d: 1, p: 1}
+    }else if(data.direction.angle === 'left'){
+        inputData[0][37] = {d: 1, p: 1}
+    }else if(data.direction.angle === 'right'){
+        inputData[0][39] = {d: 1, p: 1}
+    }else if(data.direction.angle === 'down'){
+        inputData[0][40] = {d: 1, p: 1}
+    }
+  }
+});
+
+joystick.on('end', () => {
+  inputData[0][38] = {d: 0, p: 0, r: 1}
+  inputData[0][37] = {d: 0, p: 0, r: 1}
+  inputData[0][39] = {d: 0, p: 0, r: 1}
+  inputData[0][40] = {d: 0, p: 0, r: 1}
+});
+
+// 技能按钮点击事件
+document.getElementById('skill1').addEventListener('touchstart', () => {
+  inputData[0][0] = {d: 1, p: 1}
+});
+document.getElementById('skill1').addEventListener('touchend', () => {
+  inputData[0][0] = {d: 0, p: 0, r: 1}
+});
+
+document.getElementById('skill2').addEventListener('touchstart', () => {
+  inputData[0][2] = {d: 1, p: 1}
+});
+document.getElementById('skill2').addEventListener('touchend', () => {
+  inputData[0][2] = {d: 0, p: 0, r: 1}
+});
+
+document.getElementById('skill3').addEventListener('click', () => {
+  inputData[0][0] = {d: 0, p: 0}
+});
+</script>
