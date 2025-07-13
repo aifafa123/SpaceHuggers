@@ -1,4 +1,5 @@
 import { ControlLayer } from './control-layer'
+const navigator = {}
 /*
     LittleJS Utility Classes and Functions
     - Vector2 - fast, simple, easy vector class
@@ -148,8 +149,8 @@ class Timer
 
 'use strict';
 
-const debug = 1;
-const enableAsserts = 1;
+const debug = 0;
+const enableAsserts = 0;
 const debugPointSize = .5;
 
 let showWatermark = 0;
@@ -163,7 +164,7 @@ let debugTakeScreenshot;
 let downloadLink;
 
 // debug helper functions
-const ASSERT = enableAsserts ? (...assert)=> console.assert(...assert) : ()=>{};
+const ASSERT = enableAsserts ? (...assert)=> {} : ()=>{};
 const debugRect = (pos, size=0, color='#fff', time=0, angle=0, fill=0)=> 
 {
     ASSERT(typeof color == 'string'); // pass in regular html strings as colors
@@ -1250,9 +1251,30 @@ function glCreateTexture(image)
     return texture;
 }
 
+function safeGlCleanupAttributes(gl) {
+  const maxAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+
+  for (let i = 0; i < maxAttribs; i++) {
+    try {
+      const enabled = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+      const buffer = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+
+      if (enabled && !buffer) {
+        gl.disableVertexAttribArray(i);
+      }
+    } catch(e) {
+      console.warn('Attrib check failed at', i, e);
+    }
+  }
+}
+
+
+
 function glPreRender(width, height)
 {
     if (!glEnable) return;
+
+    safeGlCleanupAttributes(glContext)
 
     // clear and set to same size as main canvas
     glCanvas.width = width;
@@ -1295,6 +1317,8 @@ function glCopyToContext(context, forceDraw)
     
     // draw any sprites still in the buffer, copy to main canvas and clear
     glFlush();
+
+    safeGlCleanupAttributes(glContext)
 
     if (!glOverlay || forceDraw)
     {
@@ -4843,7 +4867,7 @@ function nextLevel()
 'use strict';
 
 const clampCamera = !debug;
-const lowGraphicsSettings = glOverlay = !window['chrome']; // only chromium uses high settings
+const lowGraphicsSettings = glOverlay = false; // only chromium uses high settings
 const startCameraScale = 4*16;
 const defaultCameraScale = 4*16;
 const maxPlayers = 4;
