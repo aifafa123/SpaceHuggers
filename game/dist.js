@@ -1,4 +1,3 @@
-
 /*
     LittleJS Utility Classes and Functions
     - Vector2 - fast, simple, easy vector class
@@ -197,8 +196,8 @@ const debugAABB = (pA, pB, sA, sB, color)=>
 const debugInit = ()=>
 {
     // create link for saving screenshots
-    document.body.appendChild(downloadLink = document.createElement('a'));
-    downloadLink.style.display = 'none';
+    // document.body.appendChild(downloadLink = document.createElement('a'));
+    // downloadLink.style.display = 'none';
 }
 
 const debugUpdate = ()=>
@@ -634,13 +633,13 @@ const pixelated = 1;              // use crisp pixels for pixel art
 // core engine
 
 const gravity = -.01;
-let mainCanvas=0, mainContext=0, mainCanvasSize=vec2();
+let mainCanvas=globalThis.canvas, mainContext=globalThis.ctx, mainCanvasSize=vec2();
 let engineObjects=[], engineCollideObjects=[];
 let frame=0, time=0, realTime=0, paused=0, frameTimeLastMS=0, frameTimeBufferMS=0, debugFPS=0;
 let cameraPos=vec2(), cameraScale=4*max(defaultTileSize.x, defaultTileSize.y);
 let tileImageSize, tileImageSizeInverse, shrinkTilesX, shrinkTilesY, drawCount;
 
-const tileImage = new Image(); // the tile image used by everything
+const tileImage = wx.createImage(); // the tile image used by everything
 function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
 {
     // init engine when tiles load
@@ -653,10 +652,10 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
         shrinkTilesY = tileBleedShrinkFix/tileImageSize.y;
 
         // setup html
-        document.body.appendChild(mainCanvas = document.createElement('canvas'));
-        document.body.style = 'margin:0;overflow:hidden;background:#000';
-        mainCanvas.style = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);image-rendering:crisp-edges;image-rendering:pixelated';          // pixelated rendering
-        mainContext = mainCanvas.getContext('2d');
+        // document.body.appendChild(mainCanvas = document.createElement('canvas'));
+        // document.body.style = 'margin:0;overflow:hidden;background:#000';
+        // mainCanvas.style = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);image-rendering:crisp-edges;image-rendering:pixelated';          // pixelated rendering
+        // mainContext = mainCanvas.getContext('2d');
 
         debugInit();
         glInit();
@@ -669,8 +668,8 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
     {
         requestAnimationFrame(engineUpdate);
         
-        if (!document.hasFocus())
-            inputData[0].length = 0; // clear input when lost focus
+        // if (!document.hasFocus())
+        //     inputData[0].length = 0; // clear input when lost focus
 
         // prepare to update time
         const realFrameTimeDeltaMS = frameTimeMS - frameTimeLastMS;
@@ -1109,7 +1108,7 @@ function glInit()
     if (!glEnable) return;
 
     // create the canvas and tile texture
-    glCanvas = document.createElement('canvas');
+    glCanvas = wx.createCanvas();
     glContext = glCanvas.getContext('webgl', {antialias:!pixelated});
     glTileTexture = glCreateTexture(tileImage);
     glShrinkTilesX = tileBleedShrinkFix/tileImageSize.x;
@@ -1559,7 +1558,7 @@ function setBlendMode(additive)
 ///////////////////////////////////////////////////////////////////////////////
 // input
 
-const enableGamepads = 1;
+const enableGamepads = 0;
 const enableTouchInput = 0;
 const copyGamepadDirectionToStick = 1;
 const copyWASDToDpad = 1;
@@ -1581,7 +1580,7 @@ const mouseWasPressed  = keyWasPressed;
 const mouseWasReleased = keyWasReleased;
 
 // handle input events
-onkeydown   = e=>
+const onkeydown   = e=>
 {
     if (debug && e.target != document.body) return;
     console.log(JSON.stringify(inputData))
@@ -1589,21 +1588,21 @@ onkeydown   = e=>
     e.repeat || (inputData[isUsingGamepad = 0][remapKeyCode(e.keyCode)] = {d:hadInput=1, p:1});
     console.log(JSON.stringify(inputData))
 }
-onkeyup     = e=>
+const onkeyup     = e=>
 {
     if (debug && e.target != document.body) return;debugger
     const c = remapKeyCode(e.keyCode); inputData[0][c] && (inputData[0][c].d = 0, inputData[0][c].r = 1);
     
 }
-onmousedown = e=> {
+const onmousedown = e=> {
     (inputData[0][e.button] = {d:hadInput=1, p:1}, onmousemove(e));
     console.log(JSON.stringify(inputData))
 }
-onmouseup   = e=> {
+const onmouseup   = e=> {
     inputData[0][e.button] && (inputData[0][e.button].d = 0, inputData[0][e.button].r = 1);
     console.log(JSON.stringify(inputData))
 }
-onmousemove = e=>
+const onmousemove = e=>
 {
     if (!mainCanvas)
         return;
@@ -1613,9 +1612,10 @@ onmousemove = e=>
     mousePosScreen.x = mainCanvasSize.x * percent(e.x, rect.right, rect.left);
     mousePosScreen.y = mainCanvasSize.y * percent(e.y, rect.bottom, rect.top);
 }
-if(debug)
-    onwheel = e=> e.ctrlKey || (mouseWheel = sign(e.deltaY));
-oncontextmenu = e=> !1; // prevent right click menu
+if(debug) {
+  const onwheel = e=> e.ctrlKey || (mouseWheel = sign(e.deltaY));
+}
+const oncontextmenu = e=> !1; // prevent right click menu
 const remapKeyCode = c=> copyWASDToDpad ? c==87?38 : c==83?40 : c==65?37 : c==68?39 : c : c;
 
 ////////////////////////////////////////////////////////////////////
@@ -1633,8 +1633,8 @@ function updateGamepads()
     if (!navigator.getGamepads || !enableGamepads)
         return;
 
-    if (!document.hasFocus() && !debug)
-        return;
+    // if (!document.hasFocus() && !debug)
+    // return;
 
     const gamepads = navigator.getGamepads();
     gamepadCount = 0;
@@ -2088,7 +2088,7 @@ class TileLayer extends EngineObject
         super(pos, size);
 
         // create new canvas if necessary
-        this.canvas = tileLayerCanvasCache.length ? tileLayerCanvasCache.pop() : document.createElement('canvas');
+        this.canvas = tileLayerCanvasCache.length ? tileLayerCanvasCache.pop() : wx.createCanvas();
         this.context = this.canvas.getContext('2d');
 
         this.scale = scale;
