@@ -1,3 +1,4 @@
+import { ControlLayer } from './control-layer'
 /*
     LittleJS Utility Classes and Functions
     - Vector2 - fast, simple, easy vector class
@@ -638,6 +639,12 @@ let engineObjects=[], engineCollideObjects=[];
 let frame=0, time=0, realTime=0, paused=0, frameTimeLastMS=0, frameTimeBufferMS=0, debugFPS=0;
 let cameraPos=vec2(), cameraScale=4*max(defaultTileSize.x, defaultTileSize.y);
 let tileImageSize, tileImageSizeInverse, shrinkTilesX, shrinkTilesY, drawCount;
+const control = new ControlLayer(mainCanvas, mainContext);
+
+// 绑定触摸事件
+wx.onTouchStart(e => control.handleTouchStart(e.touches));
+wx.onTouchMove(e => control.handleTouchMove(e.touches));
+wx.onTouchEnd(() => control.handleTouchEnd());
 
 const tileImage = wx.createImage(); // the tile image used by everything
 function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
@@ -732,8 +739,8 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
         else
         {
             // fill the window
-            mainCanvas.width = min(innerWidth, maxWidth);
-            mainCanvas.height = min(innerHeight, maxHeight);
+            // mainCanvas.width = min(innerWidth, maxWidth);
+            // mainCanvas.height = min(innerHeight, maxHeight);
         }
 
         // save canvas size
@@ -765,6 +772,8 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
             mainContext.fillText(text, mainCanvas.width-2,2);
             drawCount = 0;
         }
+
+        control.draw()
 
         // copy anything left in the buffer if necessary
         glCopyToContext(mainContext);
@@ -1564,7 +1573,7 @@ const copyGamepadDirectionToStick = 1;
 const copyWASDToDpad = 1;
 
 // input for all devices including keyboard, mouse, and gamepad. (d=down, p=pressed, r=released)
-const inputData = [[]];
+const inputData = globalThis.inputData = [[]];
 const keyIsDown      = (key, device=0)=> inputData[device][key] && inputData[device][key].d ? 1 : 0;
 const keyWasPressed  = (key, device=0)=> inputData[device][key] && inputData[device][key].p ? 1 : 0;
 const keyWasReleased = (key, device=0)=> inputData[device][key] && inputData[device][key].r ? 1 : 0;
@@ -1590,7 +1599,7 @@ const onkeydown   = e=>
 }
 const onkeyup     = e=>
 {
-    if (debug && e.target != document.body) return;debugger
+    if (debug && e.target != document.body) return;
     const c = remapKeyCode(e.keyCode); inputData[0][c] && (inputData[0][c].d = 0, inputData[0][c].r = 1);
     
 }

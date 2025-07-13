@@ -5,7 +5,12 @@ export class Joystick {
     this.radius = radius;
     this.knobRadius = knobRadius;
     this.active = false;
-    this.direction = { x: 0, y: 0 };
+    this.direction = {
+      x: 0,
+      y: 0,
+      angle: 0,
+      label: null
+    };
   }
 
   handleTouch(touch) {
@@ -23,10 +28,26 @@ export class Joystick {
       this.knob.y = touch.clientY;
     }
 
+    const normX = dx / this.radius;
+    const normY = dy / this.radius;
+    const angle = Math.atan2(normY, normX);
+
+    const label = this.getDirection4(angle);
+
     this.direction = {
       x: (this.knob.x - this.center.x) / maxDist,
-      y: (this.knob.y - this.center.y) / maxDist
+      y: (this.knob.y - this.center.y) / maxDist,
+      angle: angle,
+      label: label
     };
+  }
+
+  getDirection4(angle) {
+    const degree = angle * 180 / Math.PI;
+    if (degree >= -45 && degree < 45) return 'right';
+    if (degree >= 45 && degree < 135) return 'down';
+    if (degree >= -135 && degree < -45) return 'up';
+    return 'left';
   }
 
   reset() {

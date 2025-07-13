@@ -1,8 +1,8 @@
 import { canvas, ctx } from './global';
-import { ControlLayer } from './game/control-layer';
+// import { ControlLayer } from './game/control-layer';
 import "./game/dist"
 
-const control = new ControlLayer(canvas, ctx);
+// const control = new ControlLayer(canvas, ctx);
 
 // 启动游戏主循环
 function gameLoop() {
@@ -13,8 +13,3 @@ function gameLoop() {
 }
 
 // gameLoop();
-
-// 绑定触摸事件
-wx.onTouchStart(e => control.handleTouchStart(e.touches));
-wx.onTouchMove(e => control.handleTouchMove(e.touches));
-wx.onTouchEnd(() => control.handleTouchEnd());
