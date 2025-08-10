@@ -1109,7 +1109,7 @@ class EngineObject
 
 'use strict';
 
-const glEnable = 1;     // can run without gl (texured coloring will be disabled)
+const glEnable = 0;     // can run without gl (texured coloring will be disabled)
 let glCanvas, glContext, glTileTexture, glShader, glPositionData, glColorData, 
     glBatchCount, glDirty, glAdditive, glShrinkTilesX, glShrinkTilesY, glOverlay;
 
@@ -1248,6 +1248,10 @@ function glCreateTexture(image)
     const texture = glContext.createTexture();
     glContext.bindTexture(gl_TEXTURE_2D, texture);
     glContext.texImage2D(gl_TEXTURE_2D, 0, gl_RGBA, gl_RGBA, gl_UNSIGNED_BYTE, image);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.LINEAR);
+
     return texture;
 }
 
