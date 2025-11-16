@@ -10,8 +10,8 @@
 
 'use strict';
 
-const debug = 1;
-const enableAsserts = 1;
+const debug = 0;
+const enableAsserts = 0;
 const debugPointSize = .5;
 
 let showWatermark = 0;
@@ -25,7 +25,7 @@ let debugTakeScreenshot;
 let downloadLink;
 
 // debug helper functions
-const ASSERT = enableAsserts ? (...assert)=> console.assert(...assert) : ()=>{};
+const ASSERT = enableAsserts ? (...assert)=> {} : ()=>{};
 const debugRect = (pos, size=0, color='#fff', time=0, angle=0, fill=0)=> 
 {
     ASSERT(typeof color == 'string'); // pass in regular html strings as colors
@@ -59,8 +59,8 @@ const debugAABB = (pA, pB, sA, sB, color)=>
 const debugInit = ()=>
 {
     // create link for saving screenshots
-    document.body.appendChild(downloadLink = document.createElement('a'));
-    downloadLink.style.display = 'none';
+    // document.body.appendChild(downloadLink = document.createElement('a'));
+    // downloadLink.style.display = 'none';
 }
 
 const debugUpdate = ()=>

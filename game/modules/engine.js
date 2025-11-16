@@ -42,13 +42,19 @@ const pixelated = 1;              // use crisp pixels for pixel art
 // core engine
 
 const gravity = -.01;
-let mainCanvas=0, mainContext=0, mainCanvasSize=vec2();
+let mainCanvas=globalThis.canvas, mainContext=globalThis.ctx, mainCanvasSize=vec2();
 let engineObjects=[], engineCollideObjects=[];
 let frame=0, time=0, realTime=0, paused=0, frameTimeLastMS=0, frameTimeBufferMS=0, debugFPS=0;
 let cameraPos=vec2(), cameraScale=4*max(defaultTileSize.x, defaultTileSize.y);
 let tileImageSize, tileImageSizeInverse, shrinkTilesX, shrinkTilesY, drawCount;
+const control = new ControlLayer(mainCanvas, mainContext);
 
-const tileImage = new Image(); // the tile image used by everything
+// 绑定触摸事件
+wx.onTouchStart(e => control.handleTouchStart(e.touches));
+wx.onTouchMove(e => control.handleTouchMove(e.touches));
+wx.onTouchEnd(() => control.handleTouchEnd());
+
+const tileImage = wx.createImage(); // the tile image used by everything
 function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
 {
     // init engine when tiles load
@@ -61,10 +67,10 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
         shrinkTilesY = tileBleedShrinkFix/tileImageSize.y;
 
         // setup html
-        document.body.appendChild(mainCanvas = document.createElement('canvas'));
-        document.body.style = 'margin:0;overflow:hidden;background:#000';
-        mainCanvas.style = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);image-rendering:crisp-edges;image-rendering:pixelated';          // pixelated rendering
-        mainContext = mainCanvas.getContext('2d');
+        // document.body.appendChild(mainCanvas = document.createElement('canvas'));
+        // document.body.style = 'margin:0;overflow:hidden;background:#000';
+        // mainCanvas.style = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);image-rendering:crisp-edges;image-rendering:pixelated';          // pixelated rendering
+        // mainContext = mainCanvas.getContext('2d');
 
         debugInit();
         glInit();
@@ -77,8 +83,8 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
     {
         requestAnimationFrame(engineUpdate);
         
-        if (!document.hasFocus())
-            inputData[0].length = 0; // clear input when lost focus
+        // if (!document.hasFocus())
+        //     inputData[0].length = 0; // clear input when lost focus
 
         // prepare to update time
         const realFrameTimeDeltaMS = frameTimeMS - frameTimeLastMS;
@@ -141,8 +147,8 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
         else
         {
             // fill the window
-            mainCanvas.width = min(innerWidth, maxWidth);
-            mainCanvas.height = min(innerHeight, maxHeight);
+            // mainCanvas.width = min(innerWidth, maxWidth);
+            // mainCanvas.height = min(innerHeight, maxHeight);
         }
 
         // save canvas size
@@ -174,6 +180,8 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
             mainContext.fillText(text, mainCanvas.width-2,2);
             drawCount = 0;
         }
+
+        control.draw()
 
         // copy anything left in the buffer if necessary
         glCopyToContext(mainContext);

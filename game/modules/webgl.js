@@ -10,7 +10,7 @@
 
 'use strict';
 
-const glEnable = 1;     // can run without gl (texured coloring will be disabled)
+const glEnable = 0;     // can run without gl (texured coloring will be disabled)
 let glCanvas, glContext, glTileTexture, glShader, glPositionData, glColorData, 
     glBatchCount, glDirty, glAdditive, glShrinkTilesX, glShrinkTilesY, glOverlay;
 
@@ -19,7 +19,7 @@ function glInit()
     if (!glEnable) return;
 
     // create the canvas and tile texture
-    glCanvas = document.createElement('canvas');
+    glCanvas = wx.createCanvas();
     glContext = glCanvas.getContext('webgl', {antialias:!pixelated});
     glTileTexture = glCreateTexture(tileImage);
     glShrinkTilesX = tileBleedShrinkFix/tileImageSize.x;
@@ -149,12 +149,37 @@ function glCreateTexture(image)
     const texture = glContext.createTexture();
     glContext.bindTexture(gl_TEXTURE_2D, texture);
     glContext.texImage2D(gl_TEXTURE_2D, 0, gl_RGBA, gl_RGBA, gl_UNSIGNED_BYTE, image);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.LINEAR);
+
     return texture;
 }
+
+function safeGlCleanupAttributes(gl) {
+  const maxAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+
+  for (let i = 0; i < maxAttribs; i++) {
+    try {
+      const enabled = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+      const buffer = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+
+      if (enabled && !buffer) {
+        gl.disableVertexAttribArray(i);
+      }
+    } catch(e) {
+      console.warn('Attrib check failed at', i, e);
+    }
+  }
+}
+
+
 
 function glPreRender(width, height)
 {
     if (!glEnable) return;
+
+    safeGlCleanupAttributes(glContext)
 
     // clear and set to same size as main canvas
     glCanvas.width = width;
@@ -197,6 +222,8 @@ function glCopyToContext(context, forceDraw)
     
     // draw any sprites still in the buffer, copy to main canvas and clear
     glFlush();
+
+    safeGlCleanupAttributes(glContext)
 
     if (!glOverlay || forceDraw)
     {

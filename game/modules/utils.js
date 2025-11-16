@@ -1,3 +1,4 @@
+const navigator = {}
 
 /*
     LittleJS Utility Classes and Functions

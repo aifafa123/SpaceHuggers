@@ -1,5 +1,198 @@
-import { ControlLayer } from './control-layer'
+export class Joystick {
+  constructor(x, y, radius = 50, knobRadius = 20) {
+    this.center = { x, y };
+    this.knob = { x, y };
+    this.radius = radius;
+    this.knobRadius = knobRadius;
+    this.active = false;
+    this.direction = {
+      x: 0,
+      y: 0,
+      angle: 0,
+      label: null
+    };
+  }
+
+  handleTouch(touch) {
+    const dx = touch.clientX - this.center.x;
+    const dy = touch.clientY - this.center.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const maxDist = this.radius;
+
+    if (dist > maxDist) {
+      const ratio = maxDist / dist;
+      this.knob.x = this.center.x + dx * ratio;
+      this.knob.y = this.center.y + dy * ratio;
+    } else {
+      this.knob.x = touch.clientX;
+      this.knob.y = touch.clientY;
+    }
+
+    const normX = dx / this.radius;
+    const normY = dy / this.radius;
+    const angle = Math.atan2(normY, normX);
+
+    const label = this.getDirection4(angle);
+
+    this.direction = {
+      x: (this.knob.x - this.center.x) / maxDist,
+      y: (this.knob.y - this.center.y) / maxDist,
+      angle: angle,
+      label: label
+    };
+  }
+
+  getDirection4(angle) {
+    const degree = angle * 180 / Math.PI;
+    if (degree >= -45 && degree < 45) return 'right';
+    if (degree >= 45 && degree < 135) return 'down';
+    if (degree >= -135 && degree < -45) return 'up';
+    return 'left';
+  }
+
+  reset() {
+    this.active = false;
+    this.knob = { ...this.center };
+    this.direction = { x: 0, y: 0 };
+  }
+
+  draw(ctx) {
+    if (!this.active) return;
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(this.center.x, this.center.y, this.radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(this.knob.x, this.knob.y, this.knobRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+export class SkillButton {
+  constructor(x, y, radius, label, onPress) {
+    this.x = x;
+    this.y = y;
+    this.radius = radius;
+    this.label = label;
+    this.isPressed = false;
+    this.onPress = onPress;
+  }
+
+  contains(px, py) {
+    const dx = px - this.x;
+    const dy = py - this.y;
+    return dx * dx + dy * dy <= this.radius * this.radius;
+  }
+
+  draw(ctx) {
+    ctx.fillStyle = this.isPressed ? 'rgba(200,200,255,0.9)' : 'rgba(255,255,255,0.6)';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#000';
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.label, this.x, this.y);
+  }
+}
+
+export class ControlLayer {
+  constructor(canvas, ctx) {
+    const w = canvas.width;
+    const h = canvas.height;
+
+    this.canvas = canvas;
+    this.ctx = ctx;
+    this.joystick = new Joystick(100, h - 100);
+    this.skillButtons = [
+      new SkillButton(w - 100, h - 100, 40, 'A', (pressed) => {
+        console.log('Skill A')
+        if(pressed){
+          inputData[0][0] = {d: 1, p: 1}
+        }else {
+          inputData[0][0] = {d: 0, p: 0, r: 1}
+        }
+      }),
+      new SkillButton(w - 200, h - 100, 40, 'B', (pressed) => {
+        console.log('Skill B')
+        if(pressed){
+          inputData[0][2] = {d: 1, p: 1}
+        }else {
+          inputData[0][2] = {d: 0, p: 0, r: 1}
+        }
+      }),
+      new SkillButton(w - 300, h - 100, 40, 'C', () => console.log('Skill C')),
+    ];
+  }
+
+  handleTouchStart(touches) {
+    for(let i = 0; i< touches.length; i++){
+      const touch = touches[i];
+      if (touch.clientX < this.canvas.width / 2) {
+        this.joystick.active = true;
+        this.joystick.handleTouch(touch);
+        this.joystick.touchIndex = i;
+      } else {
+        for (const btn of this.skillButtons) {
+          if (btn.contains(touch.clientX, touch.clientY)) {
+            btn.isPressed = true;
+            btn.onPress(true);
+            btn.touchIndex = i;
+          }
+        }
+      }
+    }
+  }
+
+  handleTouchMove(touches) {
+    if (!this.joystick.active) return;
+    const touch = touches[this.joystick.touchIndex];
+    this.joystick.handleTouch(touch);
+  }
+
+  handleTouchEnd() {
+    this.joystick.reset();
+    this.skillButtons.forEach(btn => {
+      if(btn.isPressed){
+        btn.isPressed = false
+        btn.onPress(false)
+      }
+    });
+  }
+
+  update() {
+    // 输出摇杆方向用于控制角色
+    // console.log(this.joystick.direction);
+    inputData[0][38] = {d: 0, p: 0, r: 1}
+    inputData[0][37] = {d: 0, p: 0, r: 1}
+    inputData[0][39] = {d: 0, p: 0, r: 1}
+    inputData[0][40] = {d: 0, p: 0, r: 1}
+    const data = this.joystick
+    if(data.direction.label === 'up'){
+        inputData[0][38] = {d: 1, p: 1}
+    }else if(data.direction.label === 'left'){
+        inputData[0][37] = {d: 1, p: 1}
+    }else if(data.direction.label === 'right'){
+        inputData[0][39] = {d: 1, p: 1}
+    }else if(data.direction.label === 'down'){
+        inputData[0][40] = {d: 1, p: 1}
+    }
+  }
+
+  draw() {
+    this.joystick.draw(this.ctx);
+    this.skillButtons.forEach(btn => btn.draw(this.ctx));
+    this.update()
+  }
+}
 const navigator = {}
+
 /*
     LittleJS Utility Classes and Functions
     - Vector2 - fast, simple, easy vector class
@@ -136,7 +329,6 @@ class Timer
     get()           { return this.isSet()? time - this.time : 0; }
     getPercent()    { return this.isSet()? percent(this.time - time, 0, this.setTime) : 0; }
 }
-
 /*
     LittleJS Debug System
     
@@ -590,7 +782,6 @@ const debugParticleSettings =
     ['randomColorComponents'],
     ['renderOrder'],
 ];
-
 /*
     LittleJS - The Little JavaScript Game Engine That Can - By Frank Force 2021
 
@@ -827,7 +1018,6 @@ function forEachObject(pos, size=0, callbackFunction=(o)=>1, collideObjectsOnly=
             pos.distanceSquared(o.pos) < sizeSquared && callbackFunction(o);
     }
 }
-
 /*
     LittleJS Object Base Class
     - Base object class used by the engine
@@ -845,8 +1035,8 @@ function forEachObject(pos, size=0, callbackFunction=(o)=>1, collideObjectsOnly=
 'use strict';
 
 ///////////////////////////////////////////////////////////////////////////////
-
 // object defaults
+
 const defaultObjectSize = vec2(.999);
 const defaultObjectMass = 1;
 const defaultObjectDamping = .99;
@@ -1096,7 +1286,6 @@ class EngineObject
         this.collideTiles = collideTiles;
     }
 }
-
 /*
     LittleJS WebGL Interface
     - All webgl used by the engine is wrapped up here
@@ -1450,7 +1639,6 @@ VERTICES_PER_QUAD = 6,
 INDICIES_PER_VERT = 9,
 MAX_BATCH = 1<<16,
 VERTEX_STRIDE = 4 + (4 * 2) * 3 + (4) * 2; // float + vec2 * 3 + (char * 4) * 2
-
 /*
     LittleJS Drawing System
 
@@ -1461,8 +1649,7 @@ VERTEX_STRIDE = 4 + (4 * 2) * 3 + (4) * 2; // float + vec2 * 3 + (char * 4) * 2
 
 'use strict';
 
-///////////////////////////////////////////////////////////////////////////////\
-
+///////////////////////////////////////////////////////////////////////////////
 const screenToWorld = (screenPos)=>
     screenPos.add(vec2(.5)).subtract(mainCanvasSize.scale(.5)).multiply(vec2(1/cameraScale,-1/cameraScale)).add(cameraPos);
 const worldToScreen = (worldPos)=>
@@ -1582,7 +1769,6 @@ function setBlendMode(additive)
 {
     glEnable ? glSetBlendMode(additive) : mainContext.globalCompositeOperation = additive ? 'lighter' : 'source-over';
 }
-
 /*
     LittleJS Input System
     - Tracks key down, pressed, and released
@@ -1746,7 +1932,6 @@ if (enableTouchInput && window.ontouchstart !== undefined)
     }
     let wasTouching;
 }
-
 /*
     LittleJS Audio System
     - Speech Synthesis
@@ -1764,8 +1949,8 @@ const audioVolume = .5;        // volume for sound, music and speech
 let audioContext;            // main audio context
 
 ///////////////////////////////////////////////////////////////////////////////
-
 // play a zzfx sound in world space with attenuation and culling
+
 function playSound(zzfxSound, pos, range=defaultSoundRange, volumeScale=1)
 {
     if (!soundEnable) return;
@@ -2020,7 +2205,6 @@ function zzfxM(instruments, patterns, sequence, BPM = 125)
 
     return [leftChannelBuffer, rightChannelBuffer];
 }
-
 /*
     LittleJS Tile Layer System
     - Caches arrays of tiles to offscreen canvas for fast rendering
@@ -2276,7 +2460,6 @@ class TileLayer extends EngineObject
 
     drawRect(pos, size, color, angle) { this.drawTile(pos, size, -1, 0, color, angle, 0); }
 }
-
 /*
     LittleJS Particle System
     - Spawns particles with randomness from parameters
@@ -2477,11 +2660,9 @@ class Particle extends EngineObject
         }
     }
 }
-
 /*
     Javascript Space Game
     By Frank Force 2021
-
 */
 
 'use strict';
@@ -2650,7 +2831,6 @@ class GameObject extends EngineObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 const propType_crate_wood           = 0;
 const propType_crate_explosive      = 1;
 const propType_crate_metal          = 2;
@@ -2785,7 +2965,6 @@ class Prop extends GameObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 let checkpointPos, activeCheckpoint, checkpointTimer = new Timer;
 
 class Checkpoint extends GameObject 
@@ -2832,7 +3011,6 @@ class Checkpoint extends GameObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 class Grenade extends GameObject
 {
     constructor(pos) 
@@ -2882,7 +3060,6 @@ class Grenade extends GameObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 class Weapon extends EngineObject 
 {
     constructor(pos, parent) 
@@ -2952,7 +3129,6 @@ class Weapon extends EngineObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 class Bullet extends EngineObject 
 {
     constructor(pos, attacker) 
@@ -3058,11 +3234,9 @@ class Bullet extends EngineObject
         drawRect(this.pos, vec2(.2,.5), this.color, this.velocity.angle());
     }
 }
-
 /*
     Javascript Space Game
     By Frank Force 2021
-
 */
 
 'use strict';
@@ -3416,7 +3590,6 @@ class Character extends GameObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 const type_weak   = 0;
 const type_normal = 1;
 const type_strong = 2;
@@ -3624,10 +3797,6 @@ class Enemy extends Character
                     if (!this.shootTimer.isSet() || this.shootTimer.get() > 1)
                         rand() < (this.type > type_weak ? .02 : .01) && this.shootTimer.set(this.isBig ? rand(2,1) : .05);
                 }
-
-                // random dodge
-                if (this.type == type_elite)
-                    this.pressedDodge = rand() < .01 && timeSinceSawPlayer < .5;
             }
             else
             {
@@ -3727,7 +3896,6 @@ class Enemy extends Character
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 class Player extends Character
 {
     constructor(pos, playerIndex=0) 
@@ -3877,11 +4045,9 @@ class Player extends Character
         }
     }
 }
-
 /*
     Javascript Space Game
     By Frank Force 2021
-
 */
 
 'use strict';
@@ -4007,7 +4173,6 @@ function makeWater(pos, amount=400)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 function explosion(pos, radius=2)
 {
     ASSERT(radius > 0);
@@ -4083,7 +4248,6 @@ function explosion(pos, radius=2)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 class TileCascadeDestroy extends EngineObject 
 {
     constructor(pos, cascadeChance=1, glass=0)
@@ -4221,9 +4385,7 @@ function destroyTile(pos, makeSound = 1, cleanNeighbors = 1, maxCascadeChance = 
 
     return 1;
 }
-
 ///////////////////////////////////////////////////////////////////////////////
-
 function drawStars()
 {
     randSeed = levelSeed;
@@ -4286,7 +4448,6 @@ function updateSky()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 let tileParallaxLayers = [];
 
 function generateParallaxLayers()
@@ -4328,11 +4489,9 @@ function updateParallaxLayers()
             .subtract(vec2(0,150/cameraScale))
     });
 }
-
 /*
     Javascript Space Game
     By Frank Force 2021
-
 */
 
 'use strict';
@@ -4861,11 +5020,9 @@ function nextLevel()
     new Player(checkpointPos);
     //new Enemy(checkpointPos.add(vec2(3))); // test enemy
 }
-
 /*
     Javascript Space Game
     By Frank Force 2021
-
 */
 
 'use strict';

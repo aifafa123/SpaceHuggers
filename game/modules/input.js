@@ -10,13 +10,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 // input
 
-const enableGamepads = 1;
+const enableGamepads = 0;
 const enableTouchInput = 0;
 const copyGamepadDirectionToStick = 1;
 const copyWASDToDpad = 1;
 
 // input for all devices including keyboard, mouse, and gamepad. (d=down, p=pressed, r=released)
-const inputData = [[]];
+const inputData = globalThis.inputData = [[]];
 const keyIsDown      = (key, device=0)=> inputData[device][key] && inputData[device][key].d ? 1 : 0;
 const keyWasPressed  = (key, device=0)=> inputData[device][key] && inputData[device][key].p ? 1 : 0;
 const keyWasReleased = (key, device=0)=> inputData[device][key] && inputData[device][key].r ? 1 : 0;
@@ -32,7 +32,7 @@ const mouseWasPressed  = keyWasPressed;
 const mouseWasReleased = keyWasReleased;
 
 // handle input events
-onkeydown   = e=>
+const onkeydown   = e=>
 {
     if (debug && e.target != document.body) return;
     console.log(JSON.stringify(inputData))
@@ -40,21 +40,21 @@ onkeydown   = e=>
     e.repeat || (inputData[isUsingGamepad = 0][remapKeyCode(e.keyCode)] = {d:hadInput=1, p:1});
     console.log(JSON.stringify(inputData))
 }
-onkeyup     = e=>
+const onkeyup     = e=>
 {
-    if (debug && e.target != document.body) return;debugger
+    if (debug && e.target != document.body) return;
     const c = remapKeyCode(e.keyCode); inputData[0][c] && (inputData[0][c].d = 0, inputData[0][c].r = 1);
     
 }
-onmousedown = e=> {
+const onmousedown = e=> {
     (inputData[0][e.button] = {d:hadInput=1, p:1}, onmousemove(e));
     console.log(JSON.stringify(inputData))
 }
-onmouseup   = e=> {
+const onmouseup   = e=> {
     inputData[0][e.button] && (inputData[0][e.button].d = 0, inputData[0][e.button].r = 1);
     console.log(JSON.stringify(inputData))
 }
-onmousemove = e=>
+const onmousemove = e=>
 {
     if (!mainCanvas)
         return;
@@ -64,9 +64,10 @@ onmousemove = e=>
     mousePosScreen.x = mainCanvasSize.x * percent(e.x, rect.right, rect.left);
     mousePosScreen.y = mainCanvasSize.y * percent(e.y, rect.bottom, rect.top);
 }
-if(debug)
-    onwheel = e=> e.ctrlKey || (mouseWheel = sign(e.deltaY));
-oncontextmenu = e=> !1; // prevent right click menu
+if(debug) {
+  const onwheel = e=> e.ctrlKey || (mouseWheel = sign(e.deltaY));
+}
+const oncontextmenu = e=> !1; // prevent right click menu
 const remapKeyCode = c=> copyWASDToDpad ? c==87?38 : c==83?40 : c==65?37 : c==68?39 : c : c;
 
 ////////////////////////////////////////////////////////////////////
@@ -84,8 +85,8 @@ function updateGamepads()
     if (!navigator.getGamepads || !enableGamepads)
         return;
 
-    if (!document.hasFocus() && !debug)
-        return;
+    // if (!document.hasFocus() && !debug)
+    // return;
 
     const gamepads = navigator.getGamepads();
     gamepadCount = 0;

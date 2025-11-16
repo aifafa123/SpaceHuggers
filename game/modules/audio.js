@@ -15,8 +15,8 @@ const audioVolume = .5;        // volume for sound, music and speech
 let audioContext;            // main audio context
 
 ///////////////////////////////////////////////////////////////////////////////
-
 // play a zzfx sound in world space with attenuation and culling
+
 function playSound(zzfxSound, pos, range=defaultSoundRange, volumeScale=1)
 {
     if (!soundEnable) return;

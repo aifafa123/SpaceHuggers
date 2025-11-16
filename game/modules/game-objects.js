@@ -1,7 +1,6 @@
 /*
     Javascript Space Game
     By Frank Force 2021
-
 */
 
 'use strict';
@@ -170,7 +169,6 @@ class GameObject extends EngineObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 const propType_crate_wood           = 0;
 const propType_crate_explosive      = 1;
 const propType_crate_metal          = 2;
@@ -305,7 +303,6 @@ class Prop extends GameObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 let checkpointPos, activeCheckpoint, checkpointTimer = new Timer;
 
 class Checkpoint extends GameObject 
@@ -352,7 +349,6 @@ class Checkpoint extends GameObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 class Grenade extends GameObject
 {
     constructor(pos) 
@@ -402,7 +398,6 @@ class Grenade extends GameObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 class Weapon extends EngineObject 
 {
     constructor(pos, parent) 
@@ -472,7 +467,6 @@ class Weapon extends EngineObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 class Bullet extends EngineObject 
 {
     constructor(pos, attacker) 

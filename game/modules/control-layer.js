@@ -1,6 +1,3 @@
-import { Joystick } from './joystick.js'
-import { SkillButton } from './skill-button.js'
-
 export class ControlLayer {
   constructor(canvas, ctx) {
     const w = canvas.width;

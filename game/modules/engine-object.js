@@ -15,8 +15,8 @@
 'use strict';
 
 ///////////////////////////////////////////////////////////////////////////////
-
 // object defaults
+
 const defaultObjectSize = vec2(.999);
 const defaultObjectMass = 1;
 const defaultObjectDamping = .99;

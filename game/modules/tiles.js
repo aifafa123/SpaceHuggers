@@ -1,7 +1,6 @@
 /*
     Javascript Space Game
     By Frank Force 2021
-
 */
 
 'use strict';

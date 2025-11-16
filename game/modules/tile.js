@@ -102,7 +102,7 @@ class TileLayer extends EngineObject
         super(pos, size);
 
         // create new canvas if necessary
-        this.canvas = tileLayerCanvasCache.length ? tileLayerCanvasCache.pop() : document.createElement('canvas');
+        this.canvas = tileLayerCanvasCache.length ? tileLayerCanvasCache.pop() : wx.createCanvas();
         this.context = this.canvas.getContext('2d');
 
         this.scale = scale;

@@ -1,7 +1,6 @@
 /*
     Javascript Space Game
     By Frank Force 2021
-
 */
 
 'use strict';
@@ -355,7 +354,6 @@ class Character extends GameObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 const type_weak   = 0;
 const type_normal = 1;
 const type_strong = 2;
@@ -563,10 +561,6 @@ class Enemy extends Character
                     if (!this.shootTimer.isSet() || this.shootTimer.get() > 1)
                         rand() < (this.type > type_weak ? .02 : .01) && this.shootTimer.set(this.isBig ? rand(2,1) : .05);
                 }
-
-                // random dodge
-                if (this.type == type_elite)
-                    this.pressedDodge = rand() < .01 && timeSinceSawPlayer < .5;
             }
             else
             {
@@ -666,7 +660,6 @@ class Enemy extends Character
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 class Player extends Character
 {
     constructor(pos, playerIndex=0) 

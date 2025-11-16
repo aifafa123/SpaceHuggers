@@ -17,7 +17,12 @@
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "file",
+        "value": "game/build-modules.js"
+      }
+    ],
     "include": []
   },
   "appid": "wx20287cce3c0fed88",

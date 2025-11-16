@@ -1,13 +1,12 @@
 /*
     Javascript Space Game
     By Frank Force 2021
-
 */
 
 'use strict';
 
 const clampCamera = !debug;
-const lowGraphicsSettings = glOverlay = !window['chrome']; // only chromium uses high settings
+const lowGraphicsSettings = glOverlay = false; // only chromium uses high settings
 const startCameraScale = 4*16;
 const defaultCameraScale = 4*16;
 const maxPlayers = 4;

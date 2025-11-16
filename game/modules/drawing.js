@@ -8,8 +8,7 @@
 
 'use strict';
 
-///////////////////////////////////////////////////////////////////////////////\
-
+///////////////////////////////////////////////////////////////////////////////
 const screenToWorld = (screenPos)=>
     screenPos.add(vec2(.5)).subtract(mainCanvasSize.scale(.5)).multiply(vec2(1/cameraScale,-1/cameraScale)).add(cameraPos);
 const worldToScreen = (worldPos)=>
