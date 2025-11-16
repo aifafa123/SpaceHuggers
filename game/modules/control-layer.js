@@ -2,14 +2,44 @@ export class ControlLayer {
   constructor(canvas, ctx) {
     const w = canvas.width;
     const h = canvas.height;
-
+    
+    // Calculate scaled sizes based on screen dimensions
+    const screenWidth = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+        wx.getSystemInfoSync().windowWidth : 
+        window.innerWidth;
+        
+    const screenHeight = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+        wx.getSystemInfoSync().windowHeight : 
+        window.innerHeight;
+        
+    // Base sizes for a reference screen (e.g., 375x667 iPhone SE)
+    const baseScreenWidth = 375;
+    const baseScreenHeight = 667;
+    
+    // Scale factor based on screen size
+    const scaleFactor = Math.min(screenWidth / baseScreenWidth, screenHeight / baseScreenHeight);
+    
+    // Scaled sizes for UI elements - doubled the base sizes again and increased spacing
+    const joystickRadius = Math.max(60, 200 * scaleFactor); // Doubled again from 100 to 200
+    const joystickKnobRadius = Math.max(30, 100 * scaleFactor); // Doubled again from 50 to 100
+    const buttonRadius = Math.max(50, 160 * scaleFactor); // Doubled again from 80 to 160
+    const buttonSpacing = 100 * scaleFactor; // Increased spacing to prevent overlap
+    
     this.canvas = canvas;
     this.ctx = ctx;
-    // Adjust joystick position based on device pixel ratio
-    this.joystick = new Joystick(100, h - 100);
-    // Adjust skill button positions based on device pixel ratio
+    
+    // Position joystick with proper scaling and more margin from edges
+    // Moved joystick slightly to the right and up
+    this.joystick = new Joystick(
+      joystickRadius + buttonSpacing + 260,  // Moved 20px more to the right
+      h - joystickRadius - buttonSpacing - 160, // Moved 20px more up
+      joystickRadius, 
+      joystickKnobRadius
+    );
+    
+    // Position skill buttons with proper scaling and adjusted positions to prevent overlap
     this.skillButtons = [
-      new SkillButton(w - 100, h - 100, 40, 'A', (pressed) => {
+      new SkillButton(w - buttonRadius - buttonSpacing, h - buttonRadius - buttonSpacing - 40, buttonRadius, 'A', (pressed) => {
         console.log('Skill A')
         if(pressed){
           inputData[0][0] = {d: 1, p: 1}
@@ -17,7 +47,7 @@ export class ControlLayer {
           inputData[0][0] = {d: 0, p: 0, r: 1}
         }
       }),
-      new SkillButton(w - 200, h - 100, 40, 'B', (pressed) => {
+      new SkillButton(w - (buttonRadius * 2) - (buttonSpacing * 3), h - buttonRadius - buttonSpacing - 40, buttonRadius, 'B', (pressed) => {
         console.log('Skill B')
         if(pressed){
           inputData[0][2] = {d: 1, p: 1}
@@ -25,23 +55,17 @@ export class ControlLayer {
           inputData[0][2] = {d: 0, p: 0, r: 1}
         }
       }),
-      new SkillButton(w - 300, h - 100, 40, 'C', () => console.log('Skill C')),
+      // new SkillButton(w - (buttonRadius * 3) - (buttonSpacing * 5), h - buttonRadius - buttonSpacing - 40, buttonRadius, 'C', () => console.log('Skill C')),
     ];
   }
 
   handleTouchStart(touches) {
-    // Get device pixel ratio
-    const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
-        wx.getSystemInfoSync().pixelRatio || 1 : 
-        window.devicePixelRatio || 1;
-
     for(let i = 0; i< touches.length; i++){
       const touch = touches[i];
-      // Adjust touch coordinates for device pixel ratio
-      const clientX = touch.clientX / devicePixelRatio;
-      const clientY = touch.clientY / devicePixelRatio;
+      const clientX = touch.clientX;
+      const clientY = touch.clientY;
       
-      if (clientX < this.canvas.width / devicePixelRatio / 2) {
+      if (clientX < this.canvas.width / 2) {
         this.joystick.active = true;
         // Pass adjusted coordinates to joystick
         this.joystick.handleTouch({clientX, clientY});
@@ -60,16 +84,10 @@ export class ControlLayer {
 
   handleTouchMove(touches) {
     if (!this.joystick.active) return;
-    
-    // Get device pixel ratio
-    const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
-        wx.getSystemInfoSync().pixelRatio || 1 : 
-        window.devicePixelRatio || 1;
 
     const touch = touches[this.joystick.touchIndex];
-    // Adjust touch coordinates for device pixel ratio
-    const clientX = touch.clientX / devicePixelRatio;
-    const clientY = touch.clientY / devicePixelRatio;
+    const clientX = touch.clientX;
+    const clientY = touch.clientY;
     
     this.joystick.handleTouch({clientX, clientY});
   }

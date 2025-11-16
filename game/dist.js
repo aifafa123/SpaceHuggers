@@ -28,15 +28,16 @@ export class Joystick {
       this.knob.y = touch.clientY;
     }
 
-    const normX = dx / this.radius;
-    const normY = dy / this.radius;
+    // Normalize direction vector
+    const normX = dx / maxDist;
+    const normY = dy / maxDist;
     const angle = Math.atan2(normY, normX);
 
     const label = this.getDirection4(angle);
 
     this.direction = {
-      x: (this.knob.x - this.center.x) / maxDist,
-      y: (this.knob.y - this.center.y) / maxDist,
+      x: normX,
+      y: normY,
       angle: angle,
       label: label
     };
@@ -53,12 +54,18 @@ export class Joystick {
   reset() {
     this.active = false;
     this.knob = { ...this.center };
-    this.direction = { x: 0, y: 0 };
+    this.direction = { x: 0, y: 0, angle: 0, label: null };
   }
 
   draw(ctx) {
     if (!this.active) return;
 
+    // Save context state
+    ctx.save();
+    
+    // Reset transform for proper positioning
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
     ctx.strokeStyle = 'rgba(255,255,255,0.5)';
     ctx.lineWidth = 4;
     ctx.beginPath();
@@ -69,9 +76,11 @@ export class Joystick {
     ctx.beginPath();
     ctx.arc(this.knob.x, this.knob.y, this.knobRadius, 0, Math.PI * 2);
     ctx.fill();
+    
+    // Restore context state
+    ctx.restore();
   }
 }
-
 export class SkillButton {
   constructor(x, y, radius, label, onPress) {
     this.x = x;
@@ -89,31 +98,69 @@ export class SkillButton {
   }
 
   draw(ctx) {
+    // Save context state
+    ctx.save();
+    
+    // Reset transform for proper positioning
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
     ctx.fillStyle = this.isPressed ? 'rgba(200,200,255,0.9)' : 'rgba(255,255,255,0.6)';
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = '#000';
-    ctx.font = '20px sans-serif';
+    ctx.font = `${Math.max(12, 20 * (this.radius / 40))}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(this.label, this.x, this.y);
+    
+    // Restore context state
+    ctx.restore();
   }
 }
-
 export class ControlLayer {
   constructor(canvas, ctx) {
     const w = canvas.width;
     const h = canvas.height;
-
+    
+    // Calculate scaled sizes based on screen dimensions
+    const screenWidth = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+        wx.getSystemInfoSync().windowWidth : 
+        window.innerWidth;
+        
+    const screenHeight = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+        wx.getSystemInfoSync().windowHeight : 
+        window.innerHeight;
+        
+    // Base sizes for a reference screen (e.g., 375x667 iPhone SE)
+    const baseScreenWidth = 375;
+    const baseScreenHeight = 667;
+    
+    // Scale factor based on screen size
+    const scaleFactor = Math.min(screenWidth / baseScreenWidth, screenHeight / baseScreenHeight);
+    
+    // Scaled sizes for UI elements - doubled the base sizes again and increased spacing
+    const joystickRadius = Math.max(60, 200 * scaleFactor); // Doubled again from 100 to 200
+    const joystickKnobRadius = Math.max(30, 100 * scaleFactor); // Doubled again from 50 to 100
+    const buttonRadius = Math.max(50, 160 * scaleFactor); // Doubled again from 80 to 160
+    const buttonSpacing = 100 * scaleFactor; // Increased spacing to prevent overlap
+    
     this.canvas = canvas;
     this.ctx = ctx;
-    // Adjust joystick position based on device pixel ratio
-    this.joystick = new Joystick(100, h - 100);
-    // Adjust skill button positions based on device pixel ratio
+    
+    // Position joystick with proper scaling and more margin from edges
+    // Moved joystick slightly to the right and up
+    this.joystick = new Joystick(
+      joystickRadius + buttonSpacing + 260,  // Moved 20px more to the right
+      h - joystickRadius - buttonSpacing - 160, // Moved 20px more up
+      joystickRadius, 
+      joystickKnobRadius
+    );
+    
+    // Position skill buttons with proper scaling and adjusted positions to prevent overlap
     this.skillButtons = [
-      new SkillButton(w - 100, h - 100, 40, 'A', (pressed) => {
+      new SkillButton(w - buttonRadius - buttonSpacing, h - buttonRadius - buttonSpacing - 40, buttonRadius, 'A', (pressed) => {
         console.log('Skill A')
         if(pressed){
           inputData[0][0] = {d: 1, p: 1}
@@ -121,7 +168,7 @@ export class ControlLayer {
           inputData[0][0] = {d: 0, p: 0, r: 1}
         }
       }),
-      new SkillButton(w - 200, h - 100, 40, 'B', (pressed) => {
+      new SkillButton(w - (buttonRadius * 2) - (buttonSpacing * 3), h - buttonRadius - buttonSpacing - 40, buttonRadius, 'B', (pressed) => {
         console.log('Skill B')
         if(pressed){
           inputData[0][2] = {d: 1, p: 1}
@@ -129,23 +176,17 @@ export class ControlLayer {
           inputData[0][2] = {d: 0, p: 0, r: 1}
         }
       }),
-      new SkillButton(w - 300, h - 100, 40, 'C', () => console.log('Skill C')),
+      // new SkillButton(w - (buttonRadius * 3) - (buttonSpacing * 5), h - buttonRadius - buttonSpacing - 40, buttonRadius, 'C', () => console.log('Skill C')),
     ];
   }
 
   handleTouchStart(touches) {
-    // Get device pixel ratio
-    const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
-        wx.getSystemInfoSync().pixelRatio || 1 : 
-        window.devicePixelRatio || 1;
-
     for(let i = 0; i< touches.length; i++){
       const touch = touches[i];
-      // Adjust touch coordinates for device pixel ratio
-      const clientX = touch.clientX / devicePixelRatio;
-      const clientY = touch.clientY / devicePixelRatio;
+      const clientX = touch.clientX;
+      const clientY = touch.clientY;
       
-      if (clientX < this.canvas.width / devicePixelRatio / 2) {
+      if (clientX < this.canvas.width / 2) {
         this.joystick.active = true;
         // Pass adjusted coordinates to joystick
         this.joystick.handleTouch({clientX, clientY});
@@ -164,16 +205,10 @@ export class ControlLayer {
 
   handleTouchMove(touches) {
     if (!this.joystick.active) return;
-    
-    // Get device pixel ratio
-    const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
-        wx.getSystemInfoSync().pixelRatio || 1 : 
-        window.devicePixelRatio || 1;
 
     const touch = touches[this.joystick.touchIndex];
-    // Adjust touch coordinates for device pixel ratio
-    const clientX = touch.clientX / devicePixelRatio;
-    const clientY = touch.clientY / devicePixelRatio;
+    const clientX = touch.clientX;
+    const clientY = touch.clientY;
     
     this.joystick.handleTouch({clientX, clientY});
   }
@@ -862,9 +897,29 @@ const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ?
 // Create control layer with proper scaling
 const control = new ControlLayer(mainCanvas, mainContext);
 
-// 绑定触摸事件
-wx.onTouchStart(e => control.handleTouchStart(e.touches));
-wx.onTouchMove(e => control.handleTouchMove(e.touches));
+// 绑定触摸事件 with proper coordinate conversion
+wx.onTouchStart(e => {
+    // Convert touch coordinates to match canvas coordinate system
+    const touches = e.touches.map(touch => {
+        return {
+            clientX: touch.clientX * devicePixelRatio,
+            clientY: touch.clientY * devicePixelRatio
+        };
+    });
+    control.handleTouchStart(touches);
+});
+
+wx.onTouchMove(e => {
+    // Convert touch coordinates to match canvas coordinate system
+    const touches = e.touches.map(touch => {
+        return {
+            clientX: touch.clientX * devicePixelRatio,
+            clientY: touch.clientY * devicePixelRatio
+        };
+    });
+    control.handleTouchMove(touches);
+});
+
 wx.onTouchEnd(() => control.handleTouchEnd());
 
 const tileImage = wx.createImage(); // the tile image used by everything
@@ -5307,11 +5362,11 @@ engineInit(
     {
         //mainContext.fillStyle = (new Color).setHSLA(time/3,1,.5,p).rgba();
         mainContext.font = '1.5in impact';
-        mainContext.fillText('SPACE HUGGERS', mainCanvas.width/2, 140);
+        mainContext.fillText('太空虫潮', mainCanvas.width/2, 140);
     }
 
-    mainContext.font = '.5in impact';
-    p > 0 && mainContext.fillText('A JS13K Game by Frank Force',mainCanvas.width/2, 210);
+    // mainContext.font = '.5in impact';
+    // p > 0 && mainContext.fillText('A JS13K Game by Frank Force',mainCanvas.width/2, 210);
 
     // check if any enemies left
     let enemiesCount = 0;

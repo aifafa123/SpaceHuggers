@@ -15,15 +15,24 @@ export class SkillButton {
   }
 
   draw(ctx) {
+    // Save context state
+    ctx.save();
+    
+    // Reset transform for proper positioning
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
     ctx.fillStyle = this.isPressed ? 'rgba(200,200,255,0.9)' : 'rgba(255,255,255,0.6)';
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = '#000';
-    ctx.font = '20px sans-serif';
+    ctx.font = `${Math.max(12, 20 * (this.radius / 40))}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(this.label, this.x, this.y);
+    
+    // Restore context state
+    ctx.restore();
   }
 }

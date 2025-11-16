@@ -28,15 +28,16 @@ export class Joystick {
       this.knob.y = touch.clientY;
     }
 
-    const normX = dx / this.radius;
-    const normY = dy / this.radius;
+    // Normalize direction vector
+    const normX = dx / maxDist;
+    const normY = dy / maxDist;
     const angle = Math.atan2(normY, normX);
 
     const label = this.getDirection4(angle);
 
     this.direction = {
-      x: (this.knob.x - this.center.x) / maxDist,
-      y: (this.knob.y - this.center.y) / maxDist,
+      x: normX,
+      y: normY,
       angle: angle,
       label: label
     };
@@ -53,12 +54,18 @@ export class Joystick {
   reset() {
     this.active = false;
     this.knob = { ...this.center };
-    this.direction = { x: 0, y: 0 };
+    this.direction = { x: 0, y: 0, angle: 0, label: null };
   }
 
   draw(ctx) {
     if (!this.active) return;
 
+    // Save context state
+    ctx.save();
+    
+    // Reset transform for proper positioning
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
     ctx.strokeStyle = 'rgba(255,255,255,0.5)';
     ctx.lineWidth = 4;
     ctx.beginPath();
@@ -69,5 +76,8 @@ export class Joystick {
     ctx.beginPath();
     ctx.arc(this.knob.x, this.knob.y, this.knobRadius, 0, Math.PI * 2);
     ctx.fill();
+    
+    // Restore context state
+    ctx.restore();
   }
 }

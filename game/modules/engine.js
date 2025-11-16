@@ -56,9 +56,29 @@ const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ?
 // Create control layer with proper scaling
 const control = new ControlLayer(mainCanvas, mainContext);
 
-// 绑定触摸事件
-wx.onTouchStart(e => control.handleTouchStart(e.touches));
-wx.onTouchMove(e => control.handleTouchMove(e.touches));
+// 绑定触摸事件 with proper coordinate conversion
+wx.onTouchStart(e => {
+    // Convert touch coordinates to match canvas coordinate system
+    const touches = e.touches.map(touch => {
+        return {
+            clientX: touch.clientX * devicePixelRatio,
+            clientY: touch.clientY * devicePixelRatio
+        };
+    });
+    control.handleTouchStart(touches);
+});
+
+wx.onTouchMove(e => {
+    // Convert touch coordinates to match canvas coordinate system
+    const touches = e.touches.map(touch => {
+        return {
+            clientX: touch.clientX * devicePixelRatio,
+            clientY: touch.clientY * devicePixelRatio
+        };
+    });
+    control.handleTouchMove(touches);
+});
+
 wx.onTouchEnd(() => control.handleTouchEnd());
 
 const tileImage = wx.createImage(); // the tile image used by everything
