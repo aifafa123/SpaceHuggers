@@ -5,7 +5,9 @@ export class ControlLayer {
 
     this.canvas = canvas;
     this.ctx = ctx;
+    // Adjust joystick position based on device pixel ratio
     this.joystick = new Joystick(100, h - 100);
+    // Adjust skill button positions based on device pixel ratio
     this.skillButtons = [
       new SkillButton(w - 100, h - 100, 40, 'A', (pressed) => {
         console.log('Skill A')
@@ -28,15 +30,25 @@ export class ControlLayer {
   }
 
   handleTouchStart(touches) {
+    // Get device pixel ratio
+    const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+        wx.getSystemInfoSync().pixelRatio || 1 : 
+        window.devicePixelRatio || 1;
+
     for(let i = 0; i< touches.length; i++){
       const touch = touches[i];
-      if (touch.clientX < this.canvas.width / 2) {
+      // Adjust touch coordinates for device pixel ratio
+      const clientX = touch.clientX / devicePixelRatio;
+      const clientY = touch.clientY / devicePixelRatio;
+      
+      if (clientX < this.canvas.width / devicePixelRatio / 2) {
         this.joystick.active = true;
-        this.joystick.handleTouch(touch);
+        // Pass adjusted coordinates to joystick
+        this.joystick.handleTouch({clientX, clientY});
         this.joystick.touchIndex = i;
       } else {
         for (const btn of this.skillButtons) {
-          if (btn.contains(touch.clientX, touch.clientY)) {
+          if (btn.contains(clientX, clientY)) {
             btn.isPressed = true;
             btn.onPress(true);
             btn.touchIndex = i;
@@ -48,8 +60,18 @@ export class ControlLayer {
 
   handleTouchMove(touches) {
     if (!this.joystick.active) return;
+    
+    // Get device pixel ratio
+    const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+        wx.getSystemInfoSync().pixelRatio || 1 : 
+        window.devicePixelRatio || 1;
+
     const touch = touches[this.joystick.touchIndex];
-    this.joystick.handleTouch(touch);
+    // Adjust touch coordinates for device pixel ratio
+    const clientX = touch.clientX / devicePixelRatio;
+    const clientY = touch.clientY / devicePixelRatio;
+    
+    this.joystick.handleTouch({clientX, clientY});
   }
 
   handleTouchEnd() {

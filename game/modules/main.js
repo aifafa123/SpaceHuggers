@@ -148,8 +148,9 @@ engineInit(
     // clamp to bottom and sides of level
     if (clampCamera)
     {
-        const w = mainCanvas.width/2/cameraScale+1;
-        const h = mainCanvas.height/2/cameraScale+2;
+        // Use mainCanvasSize (logical size) instead of mainCanvas.width/height (physical size)
+        const w = mainCanvasSize.x/2/cameraScale+1;
+        const h = mainCanvasSize.y/2/cameraScale+2;
         cameraPos.y = max(cameraPos.y, h);
         if (w*2 < tileCollisionSize.x)
             cameraPos.x = clamp(cameraPos.x, tileCollisionSize.x - w, w);

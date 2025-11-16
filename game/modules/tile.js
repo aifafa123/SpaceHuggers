@@ -182,6 +182,12 @@ class TileLayer extends EngineObject
         mainCanvas = this.canvas;
         mainContext = this.context;
         mainContext.imageSmoothingEnabled = !pixelated; // disable smoothing for pixel art
+        
+        // Set image smoothing quality to crisp for pixel art
+        if (pixelated) {
+            mainContext.imageSmoothingQuality = 'low';
+        }
+        
         mainCanvasSize = vec2(width, height);
         glPreRender(width, height);
     }
@@ -234,6 +240,12 @@ class TileLayer extends EngineObject
         // draw a tile directly onto the layer canvas
         this.drawCanvas2D(pos, size, angle, mirror, (context)=>
         {
+            // Set image smoothing properties for crisp pixel art rendering
+            context.imageSmoothingEnabled = !pixelated;
+            if (pixelated) {
+                context.imageSmoothingQuality = 'low';
+            }
+            
             if (tileIndex < 0)
             {
                 // untextured

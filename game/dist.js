@@ -109,7 +109,9 @@ export class ControlLayer {
 
     this.canvas = canvas;
     this.ctx = ctx;
+    // Adjust joystick position based on device pixel ratio
     this.joystick = new Joystick(100, h - 100);
+    // Adjust skill button positions based on device pixel ratio
     this.skillButtons = [
       new SkillButton(w - 100, h - 100, 40, 'A', (pressed) => {
         console.log('Skill A')
@@ -132,15 +134,25 @@ export class ControlLayer {
   }
 
   handleTouchStart(touches) {
+    // Get device pixel ratio
+    const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+        wx.getSystemInfoSync().pixelRatio || 1 : 
+        window.devicePixelRatio || 1;
+
     for(let i = 0; i< touches.length; i++){
       const touch = touches[i];
-      if (touch.clientX < this.canvas.width / 2) {
+      // Adjust touch coordinates for device pixel ratio
+      const clientX = touch.clientX / devicePixelRatio;
+      const clientY = touch.clientY / devicePixelRatio;
+      
+      if (clientX < this.canvas.width / devicePixelRatio / 2) {
         this.joystick.active = true;
-        this.joystick.handleTouch(touch);
+        // Pass adjusted coordinates to joystick
+        this.joystick.handleTouch({clientX, clientY});
         this.joystick.touchIndex = i;
       } else {
         for (const btn of this.skillButtons) {
-          if (btn.contains(touch.clientX, touch.clientY)) {
+          if (btn.contains(clientX, clientY)) {
             btn.isPressed = true;
             btn.onPress(true);
             btn.touchIndex = i;
@@ -152,8 +164,18 @@ export class ControlLayer {
 
   handleTouchMove(touches) {
     if (!this.joystick.active) return;
+    
+    // Get device pixel ratio
+    const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+        wx.getSystemInfoSync().pixelRatio || 1 : 
+        window.devicePixelRatio || 1;
+
     const touch = touches[this.joystick.touchIndex];
-    this.joystick.handleTouch(touch);
+    // Adjust touch coordinates for device pixel ratio
+    const clientX = touch.clientX / devicePixelRatio;
+    const clientY = touch.clientY / devicePixelRatio;
+    
+    this.joystick.handleTouch({clientX, clientY});
   }
 
   handleTouchEnd() {
@@ -831,6 +853,13 @@ let engineObjects=[], engineCollideObjects=[];
 let frame=0, time=0, realTime=0, paused=0, frameTimeLastMS=0, frameTimeBufferMS=0, debugFPS=0;
 let cameraPos=vec2(), cameraScale=4*max(defaultTileSize.x, defaultTileSize.y);
 let tileImageSize, tileImageSizeInverse, shrinkTilesX, shrinkTilesY, drawCount;
+
+// Get device pixel ratio
+const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+    wx.getSystemInfoSync().pixelRatio || 1 : 
+    window.devicePixelRatio || 1;
+
+// Create control layer with proper scaling
 const control = new ControlLayer(mainCanvas, mainContext);
 
 // 绑定触摸事件
@@ -862,11 +891,20 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
         engineUpdate();
     };
 
-    // main update loop
-    const engineUpdate = (frameTimeMS=0)=>
+    // Set image rendering properties for crisp pixel art on the tile image itself
+    if (pixelated) {
+        tileImage.style = tileImage.style || {};
+        tileImage.style.imageRendering = 'crisp-edges';
+        tileImage.style.imageRendering = '-moz-crisp-edges';
+        tileImage.style.imageRendering = '-webkit-optimize-contrast';
+        tileImage.style.msInterpolationMode = 'nearest-neighbor';
+    }
+
+    // Main update loop function
+    function engineUpdate(frameTimeMS=0)
     {
         requestAnimationFrame(engineUpdate);
-        
+
         // if (!document.hasFocus())
         //     inputData[0].length = 0; // clear input when lost focus
 
@@ -879,10 +917,6 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
             frameTimeDeltaMS *= keyIsDown(107) ? 5 : keyIsDown(109) ? .2 : 1;
         if (!paused)
             frameTimeBufferMS += frameTimeDeltaMS;
-
-        // update frame
-        mousePosWorld = screenToWorld(mousePosScreen);
-        updateGamepads();
 
         // apply time delta smoothing, improves smoothness of framerate in some browsers
         let deltaSmooth = 0;
@@ -916,28 +950,64 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
         // add the smoothing back in
         frameTimeBufferMS += deltaSmooth;
 
+        // Handle canvas resizing for different screen resolutions
         if (fixedWidth)
         {
             // clear and fill window if smaller
-            mainCanvas.width = fixedWidth;
-            mainCanvas.height = fixedHeight;
+            mainCanvas.width = fixedWidth * devicePixelRatio;
+            mainCanvas.height = fixedHeight * devicePixelRatio;
             
             // fit to window width if smaller
             const fixedAspect = fixedWidth / fixedHeight;
-            const aspect = innerWidth / innerHeight;
+            const screenWidth = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+                wx.getSystemInfoSync().windowWidth : 
+                window.innerWidth;
+            const screenHeight = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+                wx.getSystemInfoSync().windowHeight : 
+                window.innerHeight;
+            const aspect = screenWidth / screenHeight;
             mainCanvas.style.width = aspect < fixedAspect ? '100%' : '';
             mainCanvas.style.height = aspect < fixedAspect ? '' : '100%';
         }
         else
         {
-            // fill the window
-            // mainCanvas.width = min(innerWidth, maxWidth);
-            // mainCanvas.height = min(innerHeight, maxHeight);
+            // fill the window with proper device pixel ratio handling
+            const screenWidth = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+                wx.getSystemInfoSync().windowWidth : 
+                window.innerWidth;
+            const screenHeight = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+                wx.getSystemInfoSync().windowHeight : 
+                window.innerHeight;
+                
+            // Set canvas display size
+            mainCanvas.style.width = screenWidth + 'px';
+            mainCanvas.style.height = screenHeight + 'px';
+            
+            // Add CSS properties for crisp pixel art rendering
+            mainCanvas.style.imageRendering = 'crisp-edges';
+            mainCanvas.style.imageRendering = '-moz-crisp-edges';
+            mainCanvas.style.imageRendering = '-webkit-optimize-contrast';
+            mainCanvas.style.msInterpolationMode = 'nearest-neighbor';
+            
+            // Set canvas render size with device pixel ratio
+            mainCanvas.width = screenWidth * devicePixelRatio;
+            mainCanvas.height = screenHeight * devicePixelRatio;
         }
 
-        // save canvas size
-        mainCanvasSize = vec2(mainCanvas.width, mainCanvas.height);
+        // save canvas size (logical size, not physical size)
+        const screenWidth = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+            wx.getSystemInfoSync().windowWidth : 
+            window.innerWidth;
+        const screenHeight = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+            wx.getSystemInfoSync().windowHeight : 
+            window.innerHeight;
+        mainCanvasSize = vec2(screenWidth, screenHeight);
         mainContext.imageSmoothingEnabled = !pixelated; // disable smoothing for pixel art
+        
+        // Set image smoothing quality to crisp for pixel art
+        if (pixelated) {
+            mainContext.imageSmoothingQuality = 'low';
+        }
 
         // render sort then render while removing destroyed objects
         glPreRender(mainCanvas.width, mainCanvas.height);
@@ -959,9 +1029,9 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
             mainContext.fillStyle = '#000';
             const text = engineName + ' ' + engineVersion + ' / ' 
                 + drawCount + ' / ' + engineObjects.length + ' / ' + debugFPS.toFixed(1);
-            mainContext.fillText(text, mainCanvas.width-3, 3);
+            mainContext.fillText(text, mainCanvasSize.x-3, 3);
             mainContext.fillStyle = '#fff';
-            mainContext.fillText(text, mainCanvas.width-2,2);
+            mainContext.fillText(text, mainCanvasSize.x-2,2);
             drawCount = 0;
         }
 
@@ -1439,7 +1509,10 @@ function glCreateTexture(image)
     glContext.texImage2D(gl_TEXTURE_2D, 0, gl_RGBA, gl_RGBA, gl_UNSIGNED_BYTE, image);
     glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_S, glContext.CLAMP_TO_EDGE);
     glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_WRAP_T, glContext.CLAMP_TO_EDGE);
-    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, glContext.LINEAR);
+    
+    // Use nearest neighbor filtering for pixel art to prevent blurring
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MIN_FILTER, pixelated ? gl_NEAREST : gl_LINEAR);
+    glContext.texParameteri(glContext.TEXTURE_2D, glContext.TEXTURE_MAG_FILTER, pixelated ? gl_NEAREST : gl_LINEAR);
 
     return texture;
 }
@@ -1686,6 +1759,12 @@ function drawTile(pos, size=vec2(1), tileIndex=-1, tileSize=defaultTileSize, col
         // normal canvas 2D rendering method (slower)
         drawCanvas2D(pos, size, angle, mirror, (context)=>
         {
+            // Set image smoothing properties for crisp pixel art rendering
+            context.imageSmoothingEnabled = !pixelated;
+            if (pixelated) {
+                context.imageSmoothingQuality = 'low';
+            }
+            
             if (tileIndex < 0)
             {
                 // if negative tile index, force untextured
@@ -2389,6 +2468,12 @@ class TileLayer extends EngineObject
         mainCanvas = this.canvas;
         mainContext = this.context;
         mainContext.imageSmoothingEnabled = !pixelated; // disable smoothing for pixel art
+        
+        // Set image smoothing quality to crisp for pixel art
+        if (pixelated) {
+            mainContext.imageSmoothingQuality = 'low';
+        }
+        
         mainCanvasSize = vec2(width, height);
         glPreRender(width, height);
     }
@@ -2441,6 +2526,12 @@ class TileLayer extends EngineObject
         // draw a tile directly onto the layer canvas
         this.drawCanvas2D(pos, size, angle, mirror, (context)=>
         {
+            // Set image smoothing properties for crisp pixel art rendering
+            context.imageSmoothingEnabled = !pixelated;
+            if (pixelated) {
+                context.imageSmoothingQuality = 'low';
+            }
+            
             if (tileIndex < 0)
             {
                 // untextured
@@ -5170,8 +5261,9 @@ engineInit(
     // clamp to bottom and sides of level
     if (clampCamera)
     {
-        const w = mainCanvas.width/2/cameraScale+1;
-        const h = mainCanvas.height/2/cameraScale+2;
+        // Use mainCanvasSize (logical size) instead of mainCanvas.width/height (physical size)
+        const w = mainCanvasSize.x/2/cameraScale+1;
+        const h = mainCanvasSize.y/2/cameraScale+2;
         cameraPos.y = max(cameraPos.y, h);
         if (w*2 < tileCollisionSize.x)
             cameraPos.x = clamp(cameraPos.x, tileCollisionSize.x - w, w);

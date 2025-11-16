@@ -45,6 +45,12 @@ function drawTile(pos, size=vec2(1), tileIndex=-1, tileSize=defaultTileSize, col
         // normal canvas 2D rendering method (slower)
         drawCanvas2D(pos, size, angle, mirror, (context)=>
         {
+            // Set image smoothing properties for crisp pixel art rendering
+            context.imageSmoothingEnabled = !pixelated;
+            if (pixelated) {
+                context.imageSmoothingQuality = 'low';
+            }
+            
             if (tileIndex < 0)
             {
                 // if negative tile index, force untextured

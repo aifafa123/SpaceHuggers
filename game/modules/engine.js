@@ -47,6 +47,13 @@ let engineObjects=[], engineCollideObjects=[];
 let frame=0, time=0, realTime=0, paused=0, frameTimeLastMS=0, frameTimeBufferMS=0, debugFPS=0;
 let cameraPos=vec2(), cameraScale=4*max(defaultTileSize.x, defaultTileSize.y);
 let tileImageSize, tileImageSizeInverse, shrinkTilesX, shrinkTilesY, drawCount;
+
+// Get device pixel ratio
+const devicePixelRatio = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+    wx.getSystemInfoSync().pixelRatio || 1 : 
+    window.devicePixelRatio || 1;
+
+// Create control layer with proper scaling
 const control = new ControlLayer(mainCanvas, mainContext);
 
 // 绑定触摸事件
@@ -78,11 +85,20 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
         engineUpdate();
     };
 
-    // main update loop
-    const engineUpdate = (frameTimeMS=0)=>
+    // Set image rendering properties for crisp pixel art on the tile image itself
+    if (pixelated) {
+        tileImage.style = tileImage.style || {};
+        tileImage.style.imageRendering = 'crisp-edges';
+        tileImage.style.imageRendering = '-moz-crisp-edges';
+        tileImage.style.imageRendering = '-webkit-optimize-contrast';
+        tileImage.style.msInterpolationMode = 'nearest-neighbor';
+    }
+
+    // Main update loop function
+    function engineUpdate(frameTimeMS=0)
     {
         requestAnimationFrame(engineUpdate);
-        
+
         // if (!document.hasFocus())
         //     inputData[0].length = 0; // clear input when lost focus
 
@@ -95,10 +111,6 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
             frameTimeDeltaMS *= keyIsDown(107) ? 5 : keyIsDown(109) ? .2 : 1;
         if (!paused)
             frameTimeBufferMS += frameTimeDeltaMS;
-
-        // update frame
-        mousePosWorld = screenToWorld(mousePosScreen);
-        updateGamepads();
 
         // apply time delta smoothing, improves smoothness of framerate in some browsers
         let deltaSmooth = 0;
@@ -132,28 +144,64 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
         // add the smoothing back in
         frameTimeBufferMS += deltaSmooth;
 
+        // Handle canvas resizing for different screen resolutions
         if (fixedWidth)
         {
             // clear and fill window if smaller
-            mainCanvas.width = fixedWidth;
-            mainCanvas.height = fixedHeight;
+            mainCanvas.width = fixedWidth * devicePixelRatio;
+            mainCanvas.height = fixedHeight * devicePixelRatio;
             
             // fit to window width if smaller
             const fixedAspect = fixedWidth / fixedHeight;
-            const aspect = innerWidth / innerHeight;
+            const screenWidth = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+                wx.getSystemInfoSync().windowWidth : 
+                window.innerWidth;
+            const screenHeight = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+                wx.getSystemInfoSync().windowHeight : 
+                window.innerHeight;
+            const aspect = screenWidth / screenHeight;
             mainCanvas.style.width = aspect < fixedAspect ? '100%' : '';
             mainCanvas.style.height = aspect < fixedAspect ? '' : '100%';
         }
         else
         {
-            // fill the window
-            // mainCanvas.width = min(innerWidth, maxWidth);
-            // mainCanvas.height = min(innerHeight, maxHeight);
+            // fill the window with proper device pixel ratio handling
+            const screenWidth = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+                wx.getSystemInfoSync().windowWidth : 
+                window.innerWidth;
+            const screenHeight = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+                wx.getSystemInfoSync().windowHeight : 
+                window.innerHeight;
+                
+            // Set canvas display size
+            mainCanvas.style.width = screenWidth + 'px';
+            mainCanvas.style.height = screenHeight + 'px';
+            
+            // Add CSS properties for crisp pixel art rendering
+            mainCanvas.style.imageRendering = 'crisp-edges';
+            mainCanvas.style.imageRendering = '-moz-crisp-edges';
+            mainCanvas.style.imageRendering = '-webkit-optimize-contrast';
+            mainCanvas.style.msInterpolationMode = 'nearest-neighbor';
+            
+            // Set canvas render size with device pixel ratio
+            mainCanvas.width = screenWidth * devicePixelRatio;
+            mainCanvas.height = screenHeight * devicePixelRatio;
         }
 
-        // save canvas size
-        mainCanvasSize = vec2(mainCanvas.width, mainCanvas.height);
+        // save canvas size (logical size, not physical size)
+        const screenWidth = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+            wx.getSystemInfoSync().windowWidth : 
+            window.innerWidth;
+        const screenHeight = typeof wx !== 'undefined' && wx.getSystemInfoSync ? 
+            wx.getSystemInfoSync().windowHeight : 
+            window.innerHeight;
+        mainCanvasSize = vec2(screenWidth, screenHeight);
         mainContext.imageSmoothingEnabled = !pixelated; // disable smoothing for pixel art
+        
+        // Set image smoothing quality to crisp for pixel art
+        if (pixelated) {
+            mainContext.imageSmoothingQuality = 'low';
+        }
 
         // render sort then render while removing destroyed objects
         glPreRender(mainCanvas.width, mainCanvas.height);
@@ -175,9 +223,9 @@ function engineInit(appInit, appUpdate, appUpdatePost, appRender, appRenderPost)
             mainContext.fillStyle = '#000';
             const text = engineName + ' ' + engineVersion + ' / ' 
                 + drawCount + ' / ' + engineObjects.length + ' / ' + debugFPS.toFixed(1);
-            mainContext.fillText(text, mainCanvas.width-3, 3);
+            mainContext.fillText(text, mainCanvasSize.x-3, 3);
             mainContext.fillStyle = '#fff';
-            mainContext.fillText(text, mainCanvas.width-2,2);
+            mainContext.fillText(text, mainCanvasSize.x-2,2);
             drawCount = 0;
         }
 
